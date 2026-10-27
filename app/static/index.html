@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Notes Assistant</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 14px; color: #1b2430; }
+  h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; margin-top: 26px; }
+  textarea { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; }
+  input[type=text] { padding: 8px; font: inherit; width: 60%; }
+  button { padding: 7px 12px; margin: 3px 3px 3px 0; font: inherit; cursor: pointer; border: 1px solid #98a2b3; background: #f2f4f7; border-radius: 6px; }
+  button.active { background: #1f3a5f; color: #fff; border-color: #1f3a5f; }
+  .error { color: #b42318; margin: 6px 0; min-height: 1.2em; }
+  .note { border: 1px solid #d0d5dd; border-radius: 8px; padding: 10px; margin: 8px 0; }
+  .meta { font-size: .85rem; color: #475467; margin-top: 4px; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .8rem; background: #e0e7ff; margin-right: 6px; }
+  .badge.unc { background: #fef0c7; color: #93370d; font-weight: 600; }
+  .id { font-weight: 700; margin-right: 6px; }
+  .info { color: #475467; font-style: italic; }
+</style>
+</head>
+<body>
+<h1>Smart Notes Assistant</h1>
+
+<h2>Add a note</h2>
+<textarea id="text" rows="3" maxlength="1000" placeholder="e.g. My train to Pune leaves at 6 AM"></textarea>
+<button id="add">Add note</button>
+<button id="starter">Load starter notes</button>
+<div id="error" class="error"></div>
+
+<h2>Search</h2>
+<input type="text" id="q" placeholder="e.g. hotel, or: what do I need to buy?">
+<button id="searchBtn">Search</button><button id="clearBtn">Clear</button>
+<div id="searchOut"></div>
+
+<h2>My notes</h2>
+<div id="filters"></div>
+<div id="list"></div>
+
+<script>
+const FILTERS = ["All", "Study", "Money", "Travel", "Shopping", "Uncertain"];
+let current = "All";
+const $ = id => document.getElementById(id);
+
+function showError(msg) { $("error").textContent = msg || ""; }
+
+function noteHtml(n) {
+  const div = document.createElement("div");
+  div.className = "note";
+  const top = document.createElement("div");
+  const id = document.createElement("span"); id.className = "id"; id.textContent = n.id;
+  const cat = document.createElement("span"); cat.className = "badge"; cat.textContent = n.category;
+  top.append(id, cat);
+  if (n.uncertain) {
+    const u = document.createElement("span"); u.className = "badge unc";
+    u.textContent = "Uncertain"; u.title = "The model is not confident about this category.";
+    top.append(u);
+  }
+  const body = document.createElement("div"); body.textContent = n.text;   // textContent: safe against HTML
+  div.append(top, body);
+  if (n.score !== undefined) {
+    const m = document.createElement("div"); m.className = "meta"; m.textContent = "relevance " + n.score; div.append(m);
+  }
+  return div;
+}
+
+async function api(path, options) {
+  const r = await fetch(path, options);
+  let data = null;
+  try { data = await r.json(); } catch (e) {}
+  return { ok: r.ok, status: r.status, data };
+}
+
+function renderFilters() {
+  $("filters").replaceChildren(...FILTERS.map(f => {
+    const b = document.createElement("button");
+    b.textContent = f; if (f === current) b.className = "active";
+    b.onclick = () => { current = f; renderFilters(); loadNotes(); };
+    return b;
+  }));
+}
+
+async function loadNotes() {
+  const q = current === "All" ? "" : "?category=" + current;
+  const r = await api("/notes" + q);
+  const box = $("list");
+  if (!r.ok) { box.textContent = "Could not load notes."; return; }
+  if (r.data.length === 0) { box.innerHTML = '<p class="info">No notes here yet.</p>'; return; }
+  box.replaceChildren(...r.data.map(noteHtml));
+}
+
+$("add").onclick = async () => {
+  const text = $("text").value;
+  if (!text.trim()) { showError("Please type a note before adding it. Empty notes cannot be saved."); return; }
+  const r = await api("/notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+  if (!r.ok) { showError((r.data && r.data.detail) || "Could not save the note."); return; }
+  showError(""); $("text").value = ""; loadNotes();
+};
+
+$("starter").onclick = async () => {
+  const r = await api("/starter/load", { method: "POST" });
+  if (r.ok) showError(`Starter notes: ${r.data.added} added, ${r.data.already_present} already present.`);
+  else showError("Could not load starter notes.");
+  loadNotes();
+};
+
+async function runSearch() {
+  const q = $("q").value;
+  if (!q.trim()) { $("searchOut").innerHTML = '<p class="info">Type something to search.</p>'; return; }
+  const r = await api("/search?q=" + encodeURIComponent(q));
+  const out = $("searchOut");
+  if (!r.ok) { out.textContent = "Search failed."; return; }
+  if (r.data.results.length === 0) { out.innerHTML = '<p class="info">No notes match well.</p>'; return; }
+  out.replaceChildren(...r.data.results.map(noteHtml));
+}
+$("searchBtn").onclick = runSearch;
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") runSearch(); });
+$("clearBtn").onclick = () => { $("q").value = ""; $("searchOut").replaceChildren(); };
+
+renderFilters(); loadNotes();
+</script>
+</body>
+</html>
