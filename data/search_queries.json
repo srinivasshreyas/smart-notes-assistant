@@ -1,0 +1,18 @@
+[
+  {"query": "hotel", "expected": ["N007"]},
+  {"query": "Delhi", "expected": ["N003"]},
+  {"query": "when is my flight?", "expected": ["N003"]},
+  {"query": "electricity bill", "expected": ["N002"]},
+  {"query": "savings account", "expected": ["N006"]},
+  {"query": "lab report", "expected": ["N009"]},
+  {"query": "train station", "expected": ["N011"]},
+  {"query": "what do I need to buy?", "expected": ["N004", "N012"]},
+  {"query": "money transfer", "expected": ["N006"]},
+  {"query": "accommodation", "expected": ["N007"]},
+  {"query": "groceries", "expected": ["N012"]},
+  {"query": "airplane trip", "expected": ["N003"]},
+  {"query": "send back faulty item", "expected": ["N008"]},
+  {"query": "housing payment", "expected": ["N010"]},
+  {"query": "upcoming exam", "expected": ["N001"]},
+  {"query": "when do I need to submit coursework?", "expected": ["N005", "N009"]}
+]

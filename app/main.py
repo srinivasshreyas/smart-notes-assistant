@@ -13,7 +13,7 @@ from pydantic import BaseModel, StrictStr, field_validator
 
 from app import db
 from app.classifier import Classifier
-from app.search import search_tfidf
+from app.search import search as run_search
 
 STATIC = Path(__file__).parent / "static"
 MAX_CHARS = 1000
@@ -71,8 +71,8 @@ def get_notes(category: str | None = None):
 
 @app.get("/search")
 def search(q: str = ""):
-    results = search_tfidf(q, db.list_notes())
-    return {"query": q, "results": results,
+    method, results = run_search(q, db.list_notes())
+    return {"query": q, "method": method, "results": results,
             "message": "" if results else "No notes match well."}
 
 
