@@ -1,0 +1,8 @@
+{
+  "method": "max_probability_below_threshold",
+  "threshold": 0.55,
+  "seed": 42,
+  "tuned_on": "2026-10-28",
+  "held_out_oos_flagged": 1.0,
+  "validation_flagged": 0.3
+}
