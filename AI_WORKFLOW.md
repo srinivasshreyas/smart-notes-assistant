@@ -17,5 +17,6 @@
 3. **The app was still using the old search settings** after an update: the page showed a character-TF-IDF-style score for "money transfer". Found by reading the relevance score and the evaluation output (cutoff still 0.30); fixed by patching `app/search.py`; checked by `search('money transfer')` returning N006 from the embedding method.
 4. **Trained model lost to the keyword rules** (0.640 vs 0.720). Found in the first `train.py` run; explained with feature and nearest-note evidence in `RESULTS.md`; fixed with a fix chosen by grouped cross-validation, not by watching validation.
 5. **Environment issues:** a numpy version pinned for Python 3.12 failed on my Python 3.11 (fixed by pinning 2.4.6); `git add .` staged the whole `.venv` because `.gitignore` was missing (fixed by recreating it and checking `git ls-files`); `pytest` could not import `app` (fixed with a `pytest.ini` that sets `pythonpath = .`).
+6. **A too-optimistic claim about the search cutoff.** The assistant said a 0.27 cutoff "keeps all 16" real queries. My clean-clone run printed 15/16 answered, so one query was hidden. I fixed the evaluation to also report the hit rate with the cutoff applied (0.94, and the hidden query is named) and corrected `RESULTS.md`. Checked by re-running `python eval_search.py`.
 
 Approximate time spent: [FILL IN, hours].

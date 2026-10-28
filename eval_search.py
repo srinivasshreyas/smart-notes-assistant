@@ -52,6 +52,18 @@ def main() -> None:
     for m, (h, hh, _) in results.items():
         print(f"{m:<12}{h / len(queries):>8.2f}{f'({h}/{len(queries)})':>9}{f'{hh}/{len(no_share)}':>18}")
 
+    print("\nWith the app's cutoff applied (what a user actually sees):")
+    print(f"{'method':<12}{'hit@3':>8}{'(hits)':>9}  queries hidden by the cutoff")
+    for m in methods:
+        hits, hidden = 0, []
+        for q in queries:
+            top3 = [r["id"] for r in rank(m, q["query"], notes)[:3] if r["score"] >= MIN_SCORE[m]]
+            ok = any(i in top3 for i in q["expected"])
+            hits += ok
+            if not ok and any(i in [r["id"] for r in rank(m, q["query"], notes)[:3] if r["score"] > 0] for i in q["expected"]):
+                hidden.append(q["query"])
+        print(f"{m:<12}{hits / len(queries):>8.2f}{f'({hits}/{len(queries)})':>9}  {hidden if hidden else '-'}")
+
     print("\nFailing queries per method (query -> expected, got top 3):")
     for m, (_, _, fails) in results.items():
         print(f" {m}:")

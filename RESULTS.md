@@ -62,16 +62,19 @@ Notes that differ only in a day, time or place count as one mistake.
 - Query file and command: `data/search_queries.json`, `python eval_search.py`
 - Number of queries: 16 over the 12 starter notes; 8 of them share no content words with their target note (money transfer, accommodation, groceries, airplane trip, send back faulty item, housing payment, upcoming exam, when do I need to submit coursework?).
 
-| Search approach | Hit rate @3 | Hard (no shared word) queries solved |
-| --- | ---: | ---: |
-| Keyword overlap baseline | 0.50 (8/16) | 0/8 |
-| Word TF-IDF cosine | 0.50 (8/16) | 0/8 |
-| Character TF-IDF cosine (stop words removed) | 0.69 (11/16) | 3/8 |
-| Sentence embeddings (all-MiniLM-L6-v2) | **1.00 (16/16)** | **8/8** |
+| Search approach | Hit rate @3, ranking only | Hit rate @3 with the app's cutoff applied | Hard (no shared word) queries solved, ranking only |
+| --- | ---: | ---: | ---: |
+| Keyword overlap baseline | 0.50 (8/16) | 0.50 (8/16) | 0/8 |
+| Word TF-IDF cosine | 0.50 (8/16) | 0.50 (8/16) | 0/8 |
+| Character TF-IDF cosine (stop words removed) | 0.69 (11/16) | 0.50 (8/16) | 3/8 |
+| Sentence embeddings (all-MiniLM-L6-v2) | **1.00 (16/16)** | **0.94 (15/16)** | **8/8** |
 
-- **Approach used in the app:** sentence embeddings, because it is the only method that finds notes sharing no words with the query. If the model cannot be loaded, the app falls back to character TF-IDF.
-- **Low-relevance cutoff:** results with a similarity below 0.27 are hidden. Chosen between the highest score of any of 3 unrelated queries (0.25) and the lowest score of a correct top result (0.29). A cutoff of 0.30 hid two real queries. The margin is only 0.02 on each side and rests on 3 unrelated queries, so it is a judgement, not a precise optimum.
-- **A query that still fails:** "something about money" (written as an extra probe after seeing the first results, so it is not part of the 16): a person would expect N002, N006 or N010, but the embedding search returns no result above the cutoff, because a vague category-level phrase is not close to any single note. Lowering the cutoff would find it but let unrelated queries through.
+"Ranking only" asks whether an expected note is among the 3 best-scoring notes. "With the app's cutoff applied" counts only notes whose score is above the minimum-relevance cutoff, which is what a user actually sees; it is the more honest number for the app.
+
+- **Approach used in the app:** sentence embeddings, because it is the only method that finds notes sharing no words with the query (8/8 hard queries in the ranking). If the model cannot be loaded, the app falls back to character TF-IDF.
+- **Low-relevance cutoff:** results with a similarity below 0.27 are hidden. Chosen between the highest score of any of 3 unrelated queries (0.25) and the lowest score of a correct top result (0.29). A cutoff of 0.30 hid two real queries; 0.27 hides one (see below). The margin is only 0.02 on each side and rests on 3 unrelated queries, so it is a judgement, not a precise optimum.
+- **A query that still fails:** "when do I need to submit coursework?" (expected N005 or N009). With ranking only, both are in the top 3, but their similarity is below the 0.27 cutoff, so the app shows "No notes match well." The question is long and indirect; a likely reason (not tested) is that its filler words ("when", "need", "submit") dilute the match with "assignment" and "lab report". Lowering the cutoff would find it but would also let unrelated queries through (the highest unrelated score is 0.25), so I kept 0.27 and report the miss. A second failure comes from the extra probes below: "something about money".
+- Extra probe failure: "something about money" (written after seeing the first results, so it is not part of the 16): a person would expect N002, N006 or N010, but the embedding search returns nothing above the cutoff, because a vague category-level phrase is not close to any single note.
 - Other extra probes (not counted in the hit rate): "remember to call mom" returns nothing (correct); "computer accessories" finds N004; "cheap flights" finds N003; "how do I get to the airport?" ranks the railway-station note N011 above the flight note N003.
 - Measurement bug found and fixed: the first version gave keyword and word TF-IDF 0.56 because notes with score 0 were ranked by ID and counted as hits. After requiring score > 0 they are 0.50.
 
